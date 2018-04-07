@@ -1,0 +1,541 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+        <title>reveal.js</title>
+
+        <link rel="stylesheet" href="css/reveal.css">
+        <link rel="stylesheet" href="css/theme/solarized.css">
+
+        <!-- Theme used for syntax highlighting of code -->
+        <link rel="stylesheet" href="./lib/css/atom-one-light.css">
+
+        <!-- Printing and PDF exports -->
+        <script>
+            var link = document.createElement( 'link' );
+            link.rel = 'stylesheet';
+            link.type = 'text/css';
+            link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+            document.getElementsByTagName( 'head' )[0].appendChild( link );
+        </script>
+    </head>
+    <body>
+        <div class="reveal">
+            <div class="slides">
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Elmish
+
+                        #### get your dev stack back under control
+
+                        Maxime Mangel - [@MangelMaxime](https://twitter.com/MangelMaxime)
+                    </textarea>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        - Elmish
+                        - Tooling
+                        - Elmish ecosystem
+                        - Html to Elmish
+                        - What's coming next ?
+                    </textarea>
+                </section>
+
+                <section>
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Elmish
+                        </textarea>
+                    </section>
+                </section>
+
+                <section>
+                    <section>
+                        <h2>Model - View - Update</h2>
+                        <br/>
+                        <img src="ressources/elmish-flow.png"></img>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Model - View - Update
+
+                            ### Model
+
+                            ```fs
+                                type Model =
+                                    { Value : int }
+
+                                type Msg =
+                                    | Decrement
+                                    | Increment
+
+                                let init () =
+                                    { Value = 0 }
+                            ```
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Model - View - Update
+
+                            ### View
+
+                            ```fsharp
+                            let view model dispatch =
+                                div [ ]
+                                    [ button [ OnClick (fun _ -> dispatch Decrement) ]
+                                        [ str "-" ]
+                                      div [ ]
+                                        [ str (string model.Value) ]
+                                      button [ OnClick (fun _ -> dispatch Increment) ]
+                                        [ str "+" ] ]
+                            ```
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Model - View - Update
+
+                            ### Update
+
+                            ```fsharp
+                            let update msg model =
+                                match msg with
+                                | Increment ->
+                                    { model with Value = model.Value + 1 }
+
+                                | Decrement ->
+                                    { model with Value = model.Value - 1 }
+                            ```
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Model - View - Update
+
+                            ### Linking everything
+
+                            ```fsharp
+                            Program.mkSimple init update view
+                            |> Program.withReact "elmish-app"
+                            |> Program.run
+                            ```
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+
+                        <textarea data-template>
+                            ## Model - View - Update
+
+                            ### Demo
+
+                            <img data-src="ressources/basic_counter.gif">
+                        </textarea>
+
+                    </section>
+
+                </section>
+
+                <section>
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Nested components
+
+                            ### Model
+
+                            ```fs
+                            type Model =
+                                { Counters : Counter.Model list }
+
+                            type Msg =
+                                | Add
+                                | Remove
+                                | Modify of int * Counter.Msg
+
+                            let init () = { Counters = [] }
+                            ```
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Nested components
+
+                            ### View
+
+                            ```fs
+                            let view model dispatch =
+                                let counterDispatch i msg = dispatch (Modify (i, msg))
+
+                                let counters =
+                                    model.Counters
+                                    |> List.mapi (fun i c -> Counter.view c (counterDispatch i))
+
+
+                                div [ ]
+                                    [ yield button [ OnClick (fun _ -> dispatch Remove) ]
+                                        [  str "Remove" ]
+                                      yield button [ OnClick (fun _ -> dispatch Add) ]
+                                        [ str "Add" ]
+                                      yield! counters ]
+                            ```
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Nested components
+
+                            ### Update
+
+                            ```fs
+                            let update msg model =
+                                match msg with
+                                | Add ->
+                                    { Counters = Counter.init () :: model.Counters }
+
+                                | Remove ->
+                                    { Counters =
+                                        match model.Counters with
+                                        | [] -> []
+                                        | _ :: tail -> tail }
+
+                                | Modify (counterIndex, counterMsg) ->
+                                    { model with
+                                        Counters =
+                                            model.Counters
+                                            |> List.mapi (fun localIndex counterModel ->
+                                                if localIndex = counterIndex then
+                                                    Counter.update counterMsg counterModel
+                                                else
+                                                    counterModel
+                                            ) }
+                            ```
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+
+                        <textarea data-template>
+                            <img data-src="ressources/basic_counter_list.gif">
+                        </textarea>
+
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Tooling
+                        </textarea>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Tooling
+
+                            - Editors
+                                - Ionide
+                                - Visual Studio
+                            - Intellisense
+                            - Compiler
+                        </textarea>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Elmish.Debugger
+
+                            ```diff
+                              Program.mkSimple init update view
+                              |> Program.withReactUnoptimized "elmish-app"
+                            + |> Program.withDebugger
+                              |> Program.run
+                            ```
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Elmish.Debugger
+
+                            <img width="700" data-src="ressources/debugger_demo.gif">
+                        </textarea>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Elmish.HMR
+
+                            ```diff
+                              Program.mkSimple init update view
+                            + |> Program.withHMR
+                              |> Program.withReact "elmish-app"
+                              |> Program.run
+                            ```
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Elmish.HMR
+
+                            <img width="550" data-src="ressources/hmr_demo.gif">
+                        </textarea>
+                    </section>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Elmish ecosystem
+                    </textarea>
+                </section>
+
+                <section>
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Manual css with Bulma
+
+                            ```fs
+                            let view model dispatch =
+                                div [ Class "columns is-vcentered"
+                                      Style [ Width "300px" ] ]
+                                    [ div [ Class "column" ]
+                                        [ button [ Class "button"
+                                                   OnClick (fun _ -> dispatch Decrement) ]
+                                            [ str "-" ] ]
+                                      div [ Class "column" ]
+                                        [ str (string model.Value) ]
+                                      div [ Class "column" ]
+                                        [ button [ Class "button"
+                                                   OnClick (fun _ -> dispatch Increment) ]
+                                            [ str "+" ] ] ]
+                            ```
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Strongly typed css wtih Fulma
+
+                            ```fs
+                            let view model dispatch =
+                                Columns.columns [ Columns.Props [ Style [ Width "300px" ] ]
+                                                  Column.IsVcentered ]
+                                    [ Column.column [ ]
+                                        [ Button.button [ Button.OnClick (fun _ -> dispatch Decrement) ]
+                                            [ str "-" ] ]
+                                      Column.column [ ]
+                                        [ str (string model.Value) ]
+                                      Column.column [ ]
+                                        [ Button.button [ Button.OnClick (fun _ -> dispatch Increment) ]
+                                            [ str "+" ] ] ]
+                            ```
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+
+                        <textarea data-template>
+                            ## Styled counter
+
+                            ### Demo
+
+                            <img data-src="ressources/styled_counter.gif">
+                        </textarea>
+
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## React
+
+                            <img height="500" data-src="ressources/react-leaflet-code.png">
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## React
+
+                            <img data-src="ressources/react-leaflet-code.gif">
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## React
+
+                            <img data-src="ressources/react-leaflet-demo-map.gif">
+                        </textarea>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown>
+                        <textarea data-template>
+                            ### Thot.Json.Encode
+
+                            <img data-src="ressources/thot-encode.png">
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            ### Thot.Json.Decode
+                            <br/>
+                            - No need to follow the json structure
+                            - Decode only what's needed
+                            - Strongly typed
+                            - Easily extensible
+                            - Nice error message
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            ### Thot.Json.Decode
+
+                            <img height="550" data-src="ressources/thot-decode.png">
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            ### Thot.Json.Decode
+
+                            ```json
+                            {
+                                "firstname" : "Maxime",
+                                "surname" : "Mangel",
+                                "age": "16",
+                                "address" : {
+                                    "street" : "Main street",
+                                    "city": "Bordeaux"
+                                }
+                            }
+
+                            Expecting an int but instead got: "16"
+                            ```
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            ### Thot.Json.Decode
+
+                            ```json
+                            {
+                                "firstname" : "Maxime",
+                                "surname" : "Mangel",
+                                "age": 16,
+                                "address" : {
+                                    "city": "Bordeaux"
+                                }
+                            }
+
+                            Expecting an object with a field named `street` but instead got:
+                            {
+                                "city": "Bordeaux"
+                            }
+                            ```
+                        </textarea>
+                    </section>
+
+                    <section data-markdown>
+                        <textarea data-template>
+                            #### Thot.Json generator (WIP)
+
+                            <img height="550" data-src="ressources/thot-generator-demo.gif">
+                        </textarea>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Html to Elmish
+
+                            <img height="500" data-src="ressources/html-to-elmish-demo.gif">
+                        </textarea>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## Look at these projects too
+
+                            - [SAFE stack](https://github.com/SAFE-Stack)
+                            - [Fulma demo](https://mangelmaxime.github.io/fulma-demo/)
+                            - [Fable.Remoting](https://zaid-ajaj.github.io/Fable.Remoting/)
+                            - [Elmish.Toastr](https://zaid-ajaj.github.io/Elmish.Toastr/)
+                        </textarea>
+                    </section>
+                </section>
+
+                <section>
+                    <section data-markdown>
+                        <textarea data-template>
+                            ## What's coming ?
+
+                            - Html to Elmish
+                                - Fulma
+                                - Ionide integration
+                            - React bindings generator
+                            - Thot.Json generator tool
+                        </textarea>
+                    </section>
+                </section>
+
+                <section data-markdown>
+                    <textarea data-template>
+                        ## Thank you!
+
+
+                        - [https://ionide.io](https://ionide.io)
+                        - [http://fable.io/](http://fable.io/)
+                        - [https://fable-elmish.github.io/](https://fable-elmish.github.io/)
+                        - [https://mangelmaxime.github.io/Fulma/](https://mangelmaxime.github.io/Fulma/)
+                        - [https://github.com/fable-compiler/fable-react](https://github.com/fable-compiler/fable-react)
+                    </textarea>
+                </section>
+            </div>
+        </div>
+
+        <script src="lib/js/head.min.js"></script>
+        <script src="js/reveal.js"></script>
+
+        <script>
+            // More info about config & dependencies:
+            // - https://github.com/hakimel/reveal.js#configuration
+            // - https://github.com/hakimel/reveal.js#dependencies
+            Reveal.initialize({
+                history: true,
+                dependencies: [
+                    { src: 'plugin/markdown/marked.js' },
+                    { src: 'plugin/markdown/markdown.js' },
+                    { src: 'plugin/notes/notes.js', async: true },
+                    { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+                    { src: 'plugin/zoom-js/zoom.js' }
+                ]
+            });
+        </script>
+    </body>
+</html>
